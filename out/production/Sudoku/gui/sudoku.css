@@ -1,0 +1,41 @@
+.root {
+    -fx-background-color: linear-gradient(from 25% 25% to 100% 100%, #2F2F2F, #353535);
+}
+
+.button {
+    -fx-font-size: 14px;
+    -fx-background-color: #444444;
+    -fx-background-radius: 18;
+    -fx-border-radius: 18;
+    -fx-text-fill: #C0C8CF;
+}
+
+.button:hover {
+    -fx-background-color: #545454;
+    -fx-background-radius: 25;
+    -fx-border-radius: 25;
+    -fx-end-margin: 15;
+}
+
+.label {
+    -fx-text-fill: #C0C8CF;
+    -fx-font-size: 24px;
+}
+
+.givenNum {
+    -fx-text-fill: #47c2eb;
+    -fx-font-size: 24px;
+}
+
+.grid Line {
+    -fx-stroke: #C0C8CF;
+}
+
+.odd {
+    -fx-background-color: rgba(53, 53, 53, 0.5);
+
+}
+
+.even {
+    -fx-background-color: rgba(65, 65, 65, 0.5);
+}
