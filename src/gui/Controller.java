@@ -2,11 +2,15 @@ package gui;
 
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
+import javafx.event.Event;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.Label;
+import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.stage.Stage;
@@ -69,6 +73,9 @@ public class Controller {
                 Label label = new Label();
                 labels[i][j] = label;
                 label.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+                label.setOnMouseClicked(this::mouseClicked);
+                label.setOnMouseEntered(this::mouseEntered);
+                label.setOnMouseExited(this::mouseExited);
                 gridPane.add(label, i, j);
                 // add user inserting numbers here
             }
@@ -83,6 +90,58 @@ public class Controller {
                     colourSquare(i, j, "odd");
             }
         }
+    }
+
+    /**
+     * Get the coordinates of the source of the event.
+     *
+     * @param event The event.
+     * @return The coordinates of the source.
+     */
+    private int[] getSource(Event event) {
+        Label label = (Label) event.getSource();
+        int row = -1, col = -1;
+        for (int i = 0; i < labels.length && row < 0; i++)
+            for (int j = 0; j < labels[i].length; j++)
+                if (labels[i][j].equals(label)) {
+                    row = i;
+                    col = j;
+                    break;
+                }
+        return new int[]{row, col};
+    }
+
+    private void mouseClicked(MouseEvent event) {
+        int[] coords = getSource(event);
+        if (!given[coords[0]][coords[1]]) {
+            ChoiceDialog<Integer> dialog = new ChoiceDialog<>(0, Arrays.asList(0, 1, 2, 3, 4, 5, 6, 7, 8, 9));
+            dialog.setTitle("Input the number");
+            dialog.setContentText("Input your number of choice");
+            Optional<Integer> result = dialog.showAndWait();
+            if (result.isPresent()) {
+                int num = result.get();
+                board.insertNumber(coords[0], coords[1], 0);
+                if (board.canInsert(coords[0], coords[1], num)) {
+                    board.insertNumber(coords[0], coords[1], num);
+                    labels[coords[0]][coords[1]].getStyleClass().removeIf(e -> e.equals("incorrect"));
+
+                } else {
+                    board.insertNumber(coords[0], coords[1], num);
+                    labels[coords[0]][coords[1]].getStyleClass().add("incorrect");
+                }
+                drawBoard();
+            }
+        }
+    }
+
+    private void mouseEntered(MouseEvent event) {
+        Label label = (Label) event.getSource();
+        label.getStyleClass().add("selected");
+    }
+
+    private void mouseExited(MouseEvent event) {
+        Label label = (Label) event.getSource();
+        label.getStyleClass().remove("selected");
     }
 
     /**
