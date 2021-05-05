@@ -27,10 +27,6 @@
     -fx-font-size: 24px;
 }
 
-.grid Line {
-    -fx-stroke: #C0C8CF;
-}
-
 .odd {
     -fx-background-color: rgba(53, 53, 53, 0.5);
 
