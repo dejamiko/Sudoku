@@ -1,7 +1,5 @@
 package model;
 
-import model.Board;
-
 /**
  * A class responsible for the player.
  *

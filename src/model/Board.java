@@ -21,10 +21,13 @@ public class Board {
     /**
      * A constructor for the board with a given position.
      *
-     * @param pos The starting position.
+     * @param other The starting position.
      */
-    public Board(int[][] pos) {
-        board = pos;
+    public Board(Board other) {
+        board = new int[size][size];
+        for (int i = 0; i < size; i++) {
+            System.arraycopy(other.board[i], 0, board[i], 0, size);
+        }
     }
 
     /**
@@ -58,6 +61,9 @@ public class Board {
      * @return True if the player can insert a number there, false otherwise.
      */
     public boolean canInsert(int row, int col, int num) {
+        // check this place
+        if (board[row][col] != 0)
+            return false;
         // check row
         for (int i = 0; i < board[row].length; i++) {
             if (board[i][col] == num) {

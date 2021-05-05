@@ -4,17 +4,17 @@ import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
+import javafx.scene.control.Button;
+import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.stage.Stage;
 import model.Board;
+import model.Generator;
 import model.Player;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 /**
  * The controller class for the application.
@@ -25,12 +25,18 @@ import java.util.Random;
 public class Controller {
     @FXML
     private BorderPane borderPane;
+    @FXML
+    private Button solveButton;
+    @FXML
+    private Button resetButton;
+    @FXML
+    private Button newBoardButton;
+
     private GridPane gridPane;
     private Label[][] labels;
 
     private boolean[][] given;
     private Board board;
-    private Player player;
 
     private static final int SIZE = 9;
 
@@ -39,19 +45,7 @@ public class Controller {
      */
     @FXML
     private void initialize() {
-        int[][] testHard = new int[][]{
-                {0, 0, 0, 5, 0, 0, 4, 2, 0},
-                {6, 0, 0, 0, 4, 0, 0, 0, 0},
-                {0, 5, 0, 0, 0, 0, 0, 0, 3},
-                {0, 0, 0, 6, 8, 0, 1, 0, 0},
-                {0, 0, 2, 0, 0, 0, 0, 0, 0},
-                {5, 3, 0, 0, 1, 0, 7, 6, 0},
-                {0, 0, 0, 0, 0, 0, 8, 7, 0},
-                {7, 2, 0, 0, 0, 1, 0, 0, 9},
-                {0, 9, 0, 0, 0, 3, 0, 5, 0}
-        };
-        board = new Board(testHard);
-        player = new Player(board);
+        board = Generator.generateBoard(20);
         initialiseGrid();
         Platform.runLater(() -> {
             Stage stage = ((Stage) borderPane.getScene().getWindow());
@@ -69,7 +63,6 @@ public class Controller {
     private void initialiseGrid() {
         gridPane = new GridPane();
         gridPane.setGridLinesVisible(true);
-        gridPane.getStyleClass().add("grid");
         labels = new Label[SIZE][SIZE];
         for (int i = 0; i < SIZE; i++) {
             for (int j = 0; j < SIZE; j++) {
@@ -100,8 +93,6 @@ public class Controller {
         for (int i = 0; i < SIZE; i++) {
             for (int j = 0; j < SIZE; j++) {
                 given[i][j] = board.getNumber(i, j) != 0;
-                if (given[i][j])
-                    labels[i][j].getStyleClass().add("givenNum");
             }
         }
     }
@@ -111,6 +102,8 @@ public class Controller {
      */
     @FXML
     private void solveSudoku() {
+        solveButton.setDisable(true);
+        Player player = new Player(board);
         player.solve();
         drawBoardSeq();
     }
@@ -126,17 +119,22 @@ public class Controller {
                 labels[i][j].setText(num != 0 ? String.valueOf(num) : "");
                 labels[i][j].setPrefSize(size, size);
                 labels[i][j].setAlignment(Pos.CENTER);
+                if (given[i][j])
+                    labels[i][j].getStyleClass().add("givenNum");
+                else
+                    labels[i][j].getStyleClass().removeIf(e -> e.equals("givenNum"));
             }
         }
     }
 
     /**
      * Draw the board with random order and short random pauses.
-     *
+     * <p>
      * TODO fix flashing of the grid
      */
     private void drawBoardSeq() {
         new Thread(() -> {
+            setDisabilityOfButtons(true);
             List<Integer> indices = new ArrayList<>();
             for (int i = 0; i < SIZE; i++) {
                 for (int j = 0; j < SIZE; j++) {
@@ -149,7 +147,7 @@ public class Controller {
             double size = Math.min(gridPane.getWidth() / 9.5, gridPane.getHeight() / 9.5);
             for (Integer index : indices) {
                 try {
-                    Thread.sleep(random.nextInt(200));
+                    Thread.sleep(random.nextInt(100));
                 } catch (Exception e) {
                     System.out.println("The sleep was interrupted");
                 }
@@ -160,14 +158,25 @@ public class Controller {
                     labels[i][j].setAlignment(Pos.CENTER);
                 });
             }
+            Platform.runLater(() -> setDisabilityOfButtons(false));
         }).start();
+    }
+
+    /**
+     * Set the disability setting of reset and newBoardButton.
+     *
+     * @param disability The new disability setting.
+     */
+    private void setDisabilityOfButtons(boolean disability) {
+        resetButton.setDisable(disability);
+        newBoardButton.setDisable(disability);
     }
 
     /**
      * Colour the small square appropriately.
      *
-     * @param i The small square row index.
-     * @param j The small square column index.
+     * @param i     The small square row index.
+     * @param j     The small square column index.
      * @param style The name of the style used.
      */
     private void colourSquare(int i, int j, String style) {
@@ -176,5 +185,62 @@ public class Controller {
                 labels[i * 3 + k][j * 3 + l].getStyleClass().add(style);
             }
         }
+    }
+
+    /**
+     * Reset the board to a starting state.
+     */
+    @FXML
+    private void reset() {
+        clearBoard();
+        drawBoard();
+        solveButton.setDisable(false);
+    }
+
+    /**
+     * Put 0s in every place that is not a given number.
+     */
+    private void clearBoard() {
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                if (!given[i][j])
+                    board.insertNumber(i, j, 0);
+            }
+        }
+    }
+
+    /**
+     * Generate a new board.
+     */
+    @FXML
+    private void newBoard() {
+        List<String> choices = new ArrayList<>();
+
+        HashMap<String, Integer> map = new HashMap<>();
+        map.put("Easy", 40);
+        map.put("Medium", 30);
+        map.put("Hard", 20);
+        map.put("Hmm, that doesn't seem possible", 1);
+
+        choices.add("Easy");
+        choices.add("Medium");
+        choices.add("Hard");
+        choices.add("Hmm, that doesn't seem possible");
+
+        ChoiceDialog<String> dialog = new ChoiceDialog<>("Medium", choices);
+        dialog.setTitle("New board generator");
+        dialog.setContentText("Choose the difficulty of the new puzzle:");
+        Optional<String> result = dialog.showAndWait();
+        result.ifPresent(s -> new Thread(() -> {
+            setDisabilityOfButtons(true);
+            board = Generator.generateBoard(map.get(s));
+            Platform.runLater(() -> {
+                setDisabilityOfButtons(false);
+                setGiven();
+                clearBoard();
+                drawBoard();
+                solveButton.setDisable(false);
+            });
+        }).start());
     }
 }
