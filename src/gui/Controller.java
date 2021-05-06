@@ -5,7 +5,6 @@ import javafx.beans.value.ChangeListener;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
-import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.Label;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
@@ -31,7 +30,31 @@ public class Controller {
     @FXML
     private Button resetButton;
     @FXML
-    private Button newBoardButton;
+    private Button easyButton;
+    @FXML
+    private Button mediumButton;
+    @FXML
+    private Button hardButton;
+    @FXML
+    private Button oneDigitButton;
+    @FXML
+    private Button buttonOne;
+    @FXML
+    private Button buttonTwo;
+    @FXML
+    private Button buttonThree;
+    @FXML
+    private Button buttonFour;
+    @FXML
+    private Button buttonFive;
+    @FXML
+    private Button buttonSix;
+    @FXML
+    private Button buttonSeven;
+    @FXML
+    private Button buttonEight;
+    @FXML
+    private Button buttonNine;
 
     private GridPane gridPane;
     private Label[][] labels;
@@ -42,6 +65,7 @@ public class Controller {
     private int selectedCol;
 
     private static final int SIZE = 9;
+
 
     /**
      * Initialise the gui elements.
@@ -75,7 +99,7 @@ public class Controller {
                 Label label = new Label();
                 labels[i][j] = label;
                 label.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-                label.setOnMouseClicked(this::mouseClicked);
+                label.setOnMouseClicked(this::clickGrid);
                 gridPane.add(label, i, j);
                 // add user inserting numbers here
             }
@@ -115,7 +139,7 @@ public class Controller {
      *
      * @param event The event of clicking the place in the grid.
      */
-    private void mouseClicked(MouseEvent event) {
+    private void clickGrid(MouseEvent event) {
         Label label = (Label) event.getSource();
         int[] coords = getSource(label);
         if (!given[coords[0]][coords[1]]) {
@@ -157,11 +181,8 @@ public class Controller {
                 board.insertNumber(selectedRow, selectedCol, num);
             } else {
                 board.insertNumber(selectedRow, selectedCol, 0);
+                labels[selectedRow][selectedCol].getStyleClass().removeIf(e -> e.equals("incorrect"));
             }
-            // deselect
-            labels[selectedRow][selectedCol].getStyleClass().removeIf(e -> e.equals("selected"));
-            selectedRow = -1;
-            selectedCol = -1;
             drawBoard();
         }
     }
@@ -185,8 +206,9 @@ public class Controller {
     private void solveSudoku() {
         solveButton.setDisable(true);
         Player player = new Player(board);
-        if (player.solve())
+        if (player.solve()) {
             drawBoardSeq();
+        }
     }
 
     /**
@@ -248,7 +270,19 @@ public class Controller {
      */
     private void setDisabilityOfButtons(boolean disability) {
         resetButton.setDisable(disability);
-        newBoardButton.setDisable(disability);
+        easyButton.setDisable(disability);
+        mediumButton.setDisable(disability);
+        hardButton.setDisable(disability);
+        oneDigitButton.setDisable(disability);
+        buttonOne.setDisable(disability);
+        buttonTwo.setDisable(disability);
+        buttonThree.setDisable(disability);
+        buttonFour.setDisable(disability);
+        buttonFive.setDisable(disability);
+        buttonSix.setDisable(disability);
+        buttonSeven.setDisable(disability);
+        buttonEight.setDisable(disability);
+        buttonNine.setDisable(disability);
     }
 
     /**
@@ -293,28 +327,22 @@ public class Controller {
      * Generate a new board.
      */
     @FXML
-    private void newBoard() {
-        List<String> choices = new ArrayList<>();
-
+    private void newBoard(MouseEvent event) {
         HashMap<String, Integer> map = new HashMap<>();
         map.put("Easy", 40);
         map.put("Medium", 30);
         map.put("Hard", 20);
-        map.put("Hmm, that doesn't seem possible", 1);
+        map.put("This has to be a joke", 1);
 
-        choices.add("Easy");
-        choices.add("Medium");
-        choices.add("Hard");
-        choices.add("Hmm, that doesn't seem possible");
+        if (selectedRow != -1)
+            labels[selectedRow][selectedCol].getStyleClass().removeIf(e -> e.equals("selected"));
+        selectedRow = -1;
+        selectedCol = -1;
 
-        ChoiceDialog<String> dialog = new ChoiceDialog<>("Medium", choices);
-        dialog.setTitle("New board generator");
-        dialog.setHeaderText("New board");
-        dialog.setContentText("Choose the difficulty of the new puzzle:");
-        Optional<String> result = dialog.showAndWait();
-        result.ifPresent(s -> new Thread(() -> {
+        new Thread(() -> {
+            solveButton.setDisable(true);
             setDisabilityOfButtons(true);
-            board = Generator.generateBoard(map.get(s));
+            board = Generator.generateBoard(map.get(((Button) event.getSource()).getText()));
             Platform.runLater(() -> {
                 setDisabilityOfButtons(false);
                 setGiven();
@@ -322,6 +350,6 @@ public class Controller {
                 drawBoard();
                 solveButton.setDisable(false);
             });
-        }).start());
+        }).start();
     }
 }
