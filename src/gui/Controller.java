@@ -2,7 +2,6 @@ package gui;
 
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
-import javafx.event.Event;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -39,6 +38,8 @@ public class Controller {
 
     private boolean[][] given;
     private Board board;
+    private int selectedRow;
+    private int selectedCol;
 
     private static final int SIZE = 9;
 
@@ -57,6 +58,9 @@ public class Controller {
             drawBoard();
         });
         setGiven();
+        // a convention that -1 means 'none selected'
+        selectedRow = -1;
+        selectedCol = -1;
     }
 
     /**
@@ -72,8 +76,6 @@ public class Controller {
                 labels[i][j] = label;
                 label.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
                 label.setOnMouseClicked(this::mouseClicked);
-                label.setOnMouseEntered(this::mouseEntered);
-                label.setOnMouseExited(this::mouseExited);
                 gridPane.add(label, i, j);
                 // add user inserting numbers here
             }
@@ -91,13 +93,12 @@ public class Controller {
     }
 
     /**
-     * Get the coordinates of the source of the event.
+     * Get the coordinates of the label.
      *
-     * @param event The event.
+     * @param label The label.
      * @return The coordinates of the source.
      */
-    private int[] getSource(Event event) {
-        Label label = (Label) event.getSource();
+    private int[] getSource(Label label) {
         int row = -1, col = -1;
         for (int i = 0; i < labels.length && row < 0; i++)
             for (int j = 0; j < labels[i].length; j++)
@@ -109,37 +110,60 @@ public class Controller {
         return new int[]{row, col};
     }
 
+    /**
+     * Let the user input a number to a clicked place in the grid.
+     *
+     * @param event The event of clicking the place in the grid.
+     */
     private void mouseClicked(MouseEvent event) {
-        int[] coords = getSource(event);
+        Label label = (Label) event.getSource();
+        int[] coords = getSource(label);
         if (!given[coords[0]][coords[1]]) {
-            ChoiceDialog<Integer> dialog = new ChoiceDialog<>(0, Arrays.asList(0, 1, 2, 3, 4, 5, 6, 7, 8, 9));
-            dialog.setTitle("Input the number");
-            dialog.setContentText("Input your number of choice");
-            Optional<Integer> result = dialog.showAndWait();
-            if (result.isPresent()) {
-                int num = result.get();
-                board.insertNumber(coords[0], coords[1], 0);
-                if (board.canInsert(coords[0], coords[1], num)) {
-                    board.insertNumber(coords[0], coords[1], num);
-                    labels[coords[0]][coords[1]].getStyleClass().removeIf(e -> e.equals("incorrect"));
-
-                } else {
-                    board.insertNumber(coords[0], coords[1], num);
-                    labels[coords[0]][coords[1]].getStyleClass().add("incorrect");
-                }
-                drawBoard();
+            // deselect the previous selected cell
+            if (selectedRow != -1) {
+                labels[selectedRow][selectedCol].getStyleClass().removeIf(e -> e.equals("selected"));
+            }
+            // if the same cell is clicked, leave it deselected
+            if (!(selectedRow == coords[0] && selectedCol == coords[1])) {
+                label.getStyleClass().add("selected");
+                selectedRow = coords[0];
+                selectedCol = coords[1];
+            } else {
+                // mark as 'none selected'
+                selectedRow = -1;
+                selectedCol = -1;
             }
         }
     }
 
-    private void mouseEntered(MouseEvent event) {
-        Label label = (Label) event.getSource();
-        label.getStyleClass().add("selected");
-    }
-
-    private void mouseExited(MouseEvent event) {
-        Label label = (Label) event.getSource();
-        label.getStyleClass().remove("selected");
+    /**
+     * Manage clicks on the number buttons.
+     *
+     * @param event The event of clicking on the number button.
+     */
+    @FXML
+    private void clickNum(MouseEvent event) {
+        // if a cell is selected
+        if (selectedCol != -1) {
+            Button button = (Button) event.getSource();
+            int num = Integer.parseInt(button.getText());
+            if (board.getNumber(selectedRow, selectedCol) != num) {
+                board.insertNumber(selectedRow, selectedCol, 0);
+                if (board.canInsert(selectedRow, selectedCol, num)) {
+                    labels[selectedRow][selectedCol].getStyleClass().removeIf(e -> e.equals("incorrect"));
+                } else {
+                    labels[selectedRow][selectedCol].getStyleClass().add("incorrect");
+                }
+                board.insertNumber(selectedRow, selectedCol, num);
+            } else {
+                board.insertNumber(selectedRow, selectedCol, 0);
+            }
+            // deselect
+            labels[selectedRow][selectedCol].getStyleClass().removeIf(e -> e.equals("selected"));
+            selectedRow = -1;
+            selectedCol = -1;
+            drawBoard();
+        }
     }
 
     /**
@@ -161,8 +185,8 @@ public class Controller {
     private void solveSudoku() {
         solveButton.setDisable(true);
         Player player = new Player(board);
-        player.solve();
-        drawBoardSeq();
+        if (player.solve())
+            drawBoardSeq();
     }
 
     /**
@@ -186,8 +210,6 @@ public class Controller {
 
     /**
      * Draw the board with random order and short random pauses.
-     * <p>
-     * TODO fix flashing of the grid
      */
     private void drawBoardSeq() {
         new Thread(() -> {
@@ -262,6 +284,7 @@ public class Controller {
             for (int j = 0; j < SIZE; j++) {
                 if (!given[i][j])
                     board.insertNumber(i, j, 0);
+                labels[i][j].getStyleClass().removeIf(e -> e.equals("incorrect"));
             }
         }
     }
@@ -286,6 +309,7 @@ public class Controller {
 
         ChoiceDialog<String> dialog = new ChoiceDialog<>("Medium", choices);
         dialog.setTitle("New board generator");
+        dialog.setHeaderText("New board");
         dialog.setContentText("Choose the difficulty of the new puzzle:");
         Optional<String> result = dialog.showAndWait();
         result.ifPresent(s -> new Thread(() -> {
