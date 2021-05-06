@@ -23,7 +23,7 @@
 }
 
 .selected {
-    -fx-opacity: 0.2;
+    -fx-opacity: 0.6;
 }
 
 .incorrect {
